@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import uuid
 
+from app.tests.auth import login
+
 
 # get
 def test_list_components_happy(client):
+    login(client)
     response = client.get("/components")
     assert response.status_code == 200, response.text
 
@@ -14,6 +17,7 @@ def test_list_components_happy(client):
 
 
 def test_list_components_filter_by_type(client):
+    login(client)
     response = client.get("/components?component_type=transformer")
     assert response.status_code == 200, response.text
 
@@ -23,6 +27,7 @@ def test_list_components_filter_by_type(client):
 
 
 def test_list_components_filter_by_substation(client):
+    login(client)
     response = client.get("/components?substation=S2")
     assert response.status_code == 200, response.text
 
@@ -33,6 +38,7 @@ def test_list_components_filter_by_substation(client):
 
 # post
 def test_create_component_happy(client):
+    login(client)
     payload = {
         "component_type": "transformer",
         "name": "T-new",
@@ -51,6 +57,7 @@ def test_create_component_happy(client):
 
 
 def test_create_component_invalid_payload(client):
+    login(client)
     # missing capacity_mva
     payload = {
         "component_type": "transformer",
@@ -65,6 +72,7 @@ def test_create_component_invalid_payload(client):
 
 # helper
 def _create_transformer(client):
+    login(client)
     payload = {
         "component_type": "transformer",
         "name": "T-upd",

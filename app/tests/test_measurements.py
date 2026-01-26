@@ -1,4 +1,3 @@
-# app/tests/test_measurements.py
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -6,6 +5,7 @@ from uuid import uuid4
 
 
 def test_create_measurement_happy(client):
+    client(login)
     response = client.get("/components?limit=1&offset=0")
     assert response.status_code == 200, response.text
     component_id = response.json()[0]["id"]
@@ -26,7 +26,15 @@ def test_create_measurement_happy(client):
     assert "id" in data
 
 
+def test_create_measurement_non_authorized(client):
+    client(login(username=, password=))
+    response = client.get("/components?limit=1&offset=0")
+    assert response.status_code == 200, response.text
+    component_id = response.json()[0]["id"]
+
+
 def test_create_measurement_component_not_found(client):
+    client(login)
     payload = {
         "component_id": str(uuid4()),
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -41,6 +49,7 @@ def test_create_measurement_component_not_found(client):
 
 def test_create_measurement_invalid_payload(client):
     # missing measurement_type
+    client(login)
     response = client.get("/components?limit=1&offset=0")
     component_id = response.json()[0]["id"]
 
