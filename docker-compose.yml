@@ -11,8 +11,18 @@ services:
         condition: service_started
       db_test:
         condition: service_healthy
+  report-worker:
+    build: .
+    command: ["uv", "run", "python", "-m", "app.report_worker"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      app:
+        condition: service_started
   db:
     image: postgres:16
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}

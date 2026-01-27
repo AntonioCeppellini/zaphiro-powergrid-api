@@ -33,6 +33,7 @@ def create_and_delete_database():
     #     conn.execute(text(f"CREATE DATABASE {test_db_name}"))
 
     engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
+    Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

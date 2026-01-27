@@ -1,10 +1,16 @@
 from __future__ import annotations
 
+import random
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from datetime import timedelta, timezone
+
 from app.tests.config import TEST_DATABASE_URL
 from app.models.components import Transformer, Line, Switch
+from app.models.measurements import Measurement
 from app.core.security import hash_password
 from app.models.users import User, UserRole
 
@@ -38,31 +44,31 @@ class TestDatabase:
         components = []
 
         # --- Transformers ---
-        for i in range(1, 4):
+        for i in range(1, 40):
             components.append(
                 Transformer(
                     component_type="transformer",
                     name=f"T-seed-{i}",
                     substation="S1",
-                    capacity_mva=50.0 * i,
-                    voltage_kv=132.0,
+                    capacity_mva=random.randint(50, 150),
+                    voltage_kv=random.randint(100, 150),
                 )
             )
 
         # --- Lines ---
-        for i in range(1, 4):
+        for i in range(1, 40):
             components.append(
                 Line(
                     component_type="line",
                     name=f"L-seed-{i}",
                     substation="S2",
-                    length_km=5.0 * i,
-                    voltage_kv=132.0,
+                    length_km=random.randint(5, 25),
+                    voltage_kv=random.randint(100, 150),
                 )
             )
 
         # --- Switches ---
-        for i in range(1, 4):
+        for i in range(1, 40):
             components.append(
                 Switch(
                     component_type="switch",
@@ -94,5 +100,35 @@ class TestDatabase:
                 is_active=True,
             )
         )
+        self.session.commit()
+
+        start_measurement_time = datetime.now(timezone.utc) - timedelta(days=10)
+
+        measurement_type_by_component_type = {
+            "transformer": "Voltage",
+            "line": "Current",
+            "switch": "Power",
+        }
         
+        batch = []
+
+        for component in components:
+            measurement_type = measurement_type_by_component_type[component.component_type]
+
+            for i in range (1, 100):
+                dayspan = random.randint(1, 9)
+                timestamp = start_measurement_time + timedelta(days=dayspan)
+
+                value = random.randint(100, 200)
+
+                batch.append(
+                    {
+                        "component_id": component.id,
+                        "timestamp": timestamp,
+                        "value": value,
+                        "measurement_type": measurement_type,
+                    }
+                )
+
+        self.session.bulk_insert_mappings(Measurement, batch)
         self.session.commit()
