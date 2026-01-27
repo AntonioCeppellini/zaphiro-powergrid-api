@@ -13,6 +13,8 @@ from app.services.components import (
     update_component,
     delete_component,
 )
+from app.api.deps import get_current_user, require_manager
+from app.models.users import User
 
 
 router = APIRouter(prefix="/components", tags=["component"])
@@ -25,18 +27,26 @@ def components_list(
     limit: int = 50,
     offset: int = 0,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
     return list_components(db, component_type, substation, limit, offset)
 
 
 @router.post("", response_model=ComponentRead)
-def components_create(data: ComponentCreate, db: Session = Depends(get_db)):
+def components_create(
+    data: ComponentCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_manager),
+):
     return create_component(db, payload=data.model_dump())
 
 
 @router.put("/{component_id}", response_model=ComponentRead)
 def components_update(
-    component_id: UUID, data: ComponentCreate, db: Session = Depends(get_db)
+    component_id: UUID,
+    data: ComponentCreate,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_manager),
 ):
     try:
         return update_component(db, component_id, payload=data.model_dump())
@@ -57,7 +67,11 @@ def components_update(
 
 
 @router.delete("/{component_id}", status_code=204)
-def components_delete(component_id: UUID, db: Session = Depends(get_db)):
+def components_delete(
+    component_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_manager),
+):
     try:
         return delete_component(db, component_id)
     except LookupError:

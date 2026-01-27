@@ -5,6 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from app.tests.config import TEST_DATABASE_URL
 from app.models.components import Transformer, Line, Switch
+from app.core.security import hash_password
+from app.models.users import User, UserRole
 
 
 _ENGINE = None
@@ -71,4 +73,26 @@ class TestDatabase:
             )
 
         self.session.add_all(components)
+        self.session.commit()
+
+        # Manager user
+        self.session.add(
+            User(
+                username="manager",
+                hashed_password=hash_password("managerpass"),
+                role=UserRole.manager,
+                is_active=True,
+            )
+        )
+        
+        # Regular user
+        self.session.add(
+            User(
+                username="user",
+                hashed_password=hash_password("userpass"),
+                role=UserRole.user,
+                is_active=True,
+            )
+        )
+        
         self.session.commit()

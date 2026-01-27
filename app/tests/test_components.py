@@ -2,18 +2,54 @@ from __future__ import annotations
 
 import uuid
 
+from app.tests.auth import login, logout
 
-# get
-def test_list_components_happy(client):
+
+COMPONENT = {
+    "component_type": "transformer",
+    "name": "T-new",
+    "substation": "S9",
+    "capacity_mva": 200.0,
+    "voltage_kv": 220.0,
+}
+
+UPDATE_COMPONENT = {
+    "component_type": "transformer",
+    "name": "T-updated",
+    "substation": "S99",
+    "capacity_mva": 150.0,
+    "voltage_kv": 220.0,
+}
+
+
+def test_list_components_manager(client):
+    login(client)
     response = client.get("/components")
     assert response.status_code == 200, response.text
 
     data = response.json()
     assert isinstance(data, list)
-    assert len(data) >= 9  # seed: 3 transformer, 3 line, 3 switch
+    assert len(data) >= 9  # 3 transformer, 3 line, 3 switch
+
+
+def test_list_components_user(client):
+    login(client, username="user", password="userpass")
+    response = client.get("/components")
+    assert response.status_code == 200, response.text
+
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 9  # 3 transformer, 3 line, 3 switch
+
+
+def test_list_components_not_authenticated(client):
+    # no login
+    response = client.get("/components")
+    assert response.status_code == 401, response.text
 
 
 def test_list_components_filter_by_type(client):
+    login(client)
     response = client.get("/components?component_type=transformer")
     assert response.status_code == 200, response.text
 
@@ -23,6 +59,7 @@ def test_list_components_filter_by_type(client):
 
 
 def test_list_components_filter_by_substation(client):
+    login(client)
     response = client.get("/components?substation=S2")
     assert response.status_code == 200, response.text
 
@@ -31,15 +68,9 @@ def test_list_components_filter_by_substation(client):
     assert all(component["substation"] == "S2" for component in data)
 
 
-# post
-def test_create_component_happy(client):
-    payload = {
-        "component_type": "transformer",
-        "name": "T-new",
-        "substation": "S9",
-        "capacity_mva": 200.0,
-        "voltage_kv": 220.0,
-    }
+def test_create_component_manager(client):
+    login(client)
+    payload = COMPONENT.copy()
 
     response = client.post("/components", json=payload)
     assert response.status_code == 200, response.text
@@ -50,7 +81,23 @@ def test_create_component_happy(client):
     assert "id" in data
 
 
+def test_create_component_user(client):
+    login(client, username="user", password="userpass")
+    payload = COMPONENT.copy()
+
+    response = client.post("/components", json=payload)
+    assert response.status_code == 403, response.text
+
+
+def test_create_component_not_authenticated(client):
+    payload = COMPONENT.copy()
+
+    response = client.post("/components", json=payload)
+    assert response.status_code == 401, response.text
+
+
 def test_create_component_invalid_payload(client):
+    login(client)
     # missing capacity_mva
     payload = {
         "component_type": "transformer",
@@ -63,32 +110,14 @@ def test_create_component_invalid_payload(client):
     assert response.status_code == 422
 
 
-# helper
-def _create_transformer(client):
-    payload = {
-        "component_type": "transformer",
-        "name": "T-upd",
-        "substation": "S1",
-        "capacity_mva": 100.0,
-        "voltage_kv": 132.0,
-    }
-    response = client.post("/components", json=payload)
-    assert response.status_code == 200
-    return response.json()
+def test_update_component(client):
+    login(client)
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
 
+    update_payload = UPDATE_COMPONENT.copy()
 
-def test_update_component_happy(client):
-    component = _create_transformer(client)
-
-    update_payload = {
-        "component_type": "transformer",
-        "name": "T-updated",
-        "substation": "S99",
-        "capacity_mva": 150.0,
-        "voltage_kv": 220.0,
-    }
-
-    response = client.put(f"/components/{component['id']}", json=update_payload)
+    response = client.put(f"/components/{component_id}", json=update_payload)
     assert response.status_code == 200, response.text
 
     data = response.json()
@@ -97,7 +126,31 @@ def test_update_component_happy(client):
     assert data["voltage_kv"] == 220.0
 
 
+def test_update_component_not_authorized(client):
+    login(client, username="user", password="userpass")
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
+
+    update_payload = UPDATE_COMPONENT.copy()
+
+    response = client.put(f"/components/{component_id}", json=update_payload)
+    assert response.status_code == 403, response.text
+
+
+def test_update_component_not_authenticated(client):
+    login(client, username="user", password="userpass")
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
+
+    update_payload = UPDATE_COMPONENT.copy()
+
+    logout(client)
+    response = client.put(f"/components/{component_id}", json=update_payload)
+    assert response.status_code == 401, response.text
+
+
 def test_update_component_not_found(client):
+    login(client)
     fake_id = str(uuid.uuid4())
 
     payload = {
@@ -113,7 +166,9 @@ def test_update_component_not_found(client):
 
 
 def test_update_component_type_mismatch(client):
-    component = _create_transformer(client)
+    login(client)
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
 
     # changing type
     payload = {
@@ -124,12 +179,14 @@ def test_update_component_type_mismatch(client):
         "voltage_kv": 132.0,
     }
 
-    response = client.put(f"/components/{component['id']}", json=payload)
+    response = client.put(f"/components/{component_id}", json=payload)
     assert response.status_code == 409
 
 
 def test_update_component_missing_type(client):
-    component = _create_transformer(client)
+    login(client)
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
 
     payload = {
         "name": "NO-TYPE",
@@ -138,24 +195,57 @@ def test_update_component_missing_type(client):
         "voltage_kv": 132.0,
     }
 
-    response = client.put(f"/components/{component['id']}", json=payload)
-    assert response.status_code == 422 or r.status_code == 400
+    response = client.put(f"/components/{component_id}", json=payload)
+    assert response.status_code == 422
 
 
-# delete
-def test_delete_component_happy(client):
-    component = _create_transformer(client)
+def test_delete_componet(client):
+    login(client)
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
 
-    response = client.delete(f"/components/{component['id']}")
+    response = client.delete(f"/components/{component_id}")
     assert response.status_code == 204
 
     # veryfing it is deleted
     response = client.get("/components?component_type=transformer")
     ids = [x["id"] for x in response.json()]
-    assert component["id"] not in ids
+    assert component_id not in ids
+
+
+def test_delete_componet_not_authorized(client):
+    login(client, username="user", password="userpass")
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
+
+    response = client.delete(f"/components/{component_id}")
+    assert response.status_code == 403
+
+    # veryfing it is not deleted
+    response = client.get("/components?component_type=transformer")
+    ids = [x["id"] for x in response.json()]
+    assert component_id in ids
+
+
+def test_delete_componet_not_authenticated(client):
+    login(client)
+    response = client.get("/components?component_type=transformer&limit=1&offset=0")
+    component_id = response.json()[0]["id"]
+
+    logout(client)
+
+    response = client.delete(f"/components/{component_id}")
+    assert response.status_code == 401
+
+    # veryfing it is not deleted
+    login(client)
+    response = client.get("/components?component_type=transformer")
+    ids = [x["id"] for x in response.json()]
+    assert component_id in ids
 
 
 def test_delete_component_not_found(client):
+    login(client)
     fake_id = str(uuid.uuid4())
     response = client.delete(f"/components/{fake_id}")
     assert response.status_code == 404
