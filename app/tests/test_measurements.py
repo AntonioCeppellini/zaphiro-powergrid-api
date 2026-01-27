@@ -3,11 +3,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from uuid import uuid4
 
+from app.tests.auth import login, logout
 
-def test_create_measurement_happy(client):
-    client(login)
+
+def test_create_measurement_manger(client):
+    login(client)
     response = client.get("/components?limit=1&offset=0")
-    assert response.status_code == 200, response.text
     component_id = response.json()[0]["id"]
 
     payload = {
@@ -26,15 +27,41 @@ def test_create_measurement_happy(client):
     assert "id" in data
 
 
-def test_create_measurement_non_authorized(client):
-    client(login(username=, password=))
+def test_create_measurement_not_authorized(client):
+    login(client, username="user", password="userpass")
     response = client.get("/components?limit=1&offset=0")
-    assert response.status_code == 200, response.text
     component_id = response.json()[0]["id"]
+
+    payload = {
+        "component_id": component_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "value": 123.45,
+        "measurement_type": "Voltage",
+    }
+
+    response = client.post("/measurements", json=payload)
+    assert response.status_code == 403
+
+
+def test_create_measurement_not_authenticated(client):
+    login(client, username="user", password="userpass")
+    response = client.get("/components?limit=1&offset=0")
+    component_id = response.json()[0]["id"]
+
+    payload = {
+        "component_id": component_id,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "value": 123.45,
+        "measurement_type": "Voltage",
+    }
+    logout(client)
+
+    response = client.post("/measurements", json=payload)
+    assert response.status_code == 401
 
 
 def test_create_measurement_component_not_found(client):
-    client(login)
+    login(client)
     payload = {
         "component_id": str(uuid4()),
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -49,7 +76,7 @@ def test_create_measurement_component_not_found(client):
 
 def test_create_measurement_invalid_payload(client):
     # missing measurement_type
-    client(login)
+    login(client)
     response = client.get("/components?limit=1&offset=0")
     component_id = response.json()[0]["id"]
 
