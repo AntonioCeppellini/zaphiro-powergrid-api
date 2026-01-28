@@ -39,5 +39,10 @@ class Measurement(Base):
     )
 
     __table_args__ = (
-        Index("ix_measurements_component_type_time", "component_id", "measurement_type", "timestamp"),
+        Index(
+            "ix_measurements_component_type_time",
+            "component_id",
+            "measurement_type",
+            "timestamp",
+        ),
     )
