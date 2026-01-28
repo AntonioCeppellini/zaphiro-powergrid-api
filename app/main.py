@@ -14,4 +14,4 @@ app.include_router(reports_router)
 
 @app.get("/hello")
 def hello():
-    return {"message": "HELLO :D"}
+    return {"message": "HELLO :D, visit /docs to see all the documentation"}

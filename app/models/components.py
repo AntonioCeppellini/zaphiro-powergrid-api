@@ -17,7 +17,6 @@ class ComponentType(str, enum.Enum):
 
 
 class SwitchStatus(str, enum.Enum):
-    # maybe True, False??
     open = "open"
     closed = "closed"
 
@@ -42,29 +41,6 @@ class Component(Base):
         Enum(ComponentType, name="component_type"), nullable=False, index=True
     )
 
-    # transformer: Mapped[Optional["transformer"]] = relationship(
-    #     "transformer",
-    #     back_populates="component",
-    #     cascade="all, delete-orphan",
-    #     passive_deletes=True,
-    #     )
-
-    # line: Mapped[Optional["line"]] = relationship(
-    #     "line",
-    #     back_populates="component",
-    #     cascade="all, delete-orphan",
-    #     passive_deletes=True,
-    #     )
-
-    # switch: Mapped[Optional["switch"]] = relationship(
-    #     "switch",
-    #     back_populates="component",
-    #     cascade="all, delete-orphan",
-    #     passive_deletes=True,
-    #     )
-
-    # relationship to link components to measurements
-    # one to many
     measurements: Mapped[List["Measurement"]] = relationship(
         "Measurement",
         back_populates="component",
@@ -115,10 +91,6 @@ class Line(Component):
 
     voltage_kv: Mapped[float] = mapped_column(Float, nullable=False)
 
-    # component: Mapped["Component"] = relationship(
-    #     back_populates="line"
-    # )
-
     __mapper_args__ = {"polymorphic_identity": ComponentType.line.value}
 
 
@@ -135,7 +107,4 @@ class Switch(Component):
         Enum(SwitchStatus, name="switch_status"), nullable=False
     )
 
-    # component: Mapped["Component"] = relationship(
-    #     back_populates="switch"
-    # )
     __mapper_args__ = {"polymorphic_identity": ComponentType.switch.value}

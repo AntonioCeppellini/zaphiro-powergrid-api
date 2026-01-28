@@ -4,7 +4,17 @@ import enum
 
 from datetime import datetime
 
-from sqlalchemy import String, Integer, ForeignKey, Float, Enum, Index, DateTime, Text, func
+from sqlalchemy import (
+    String,
+    Integer,
+    ForeignKey,
+    Float,
+    Enum,
+    Index,
+    DateTime,
+    Text,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
@@ -47,8 +57,10 @@ class Report(Base):
     attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     error_message: Mapped[str | None] = mapped_column(Text)
-    
+
     components_by_type_json: Mapped[list[dict] | None] = mapped_column(JSONB)
-    transformer_capacity_by_voltage_json: Mapped[list[dict] | None] = mapped_column(JSONB)
+    transformer_capacity_by_voltage_json: Mapped[list[dict] | None] = mapped_column(
+        JSONB
+    )
     line_length_by_voltage_json: Mapped[list[dict] | None] = mapped_column(JSONB)
     daily_measurement_averages_json: Mapped[list[dict] | None] = mapped_column(JSONB)
