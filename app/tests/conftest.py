@@ -23,14 +23,6 @@ def _db_name(test_url: str) -> str:
 def create_and_delete_database():
     test_db_name = _db_name(TEST_DATABASE_URL)
     postgres_url = make_url(TEST_DATABASE_URL)
-    # admin_engine = create_engine(
-    #     postgres_url.set(database="postgres"), pool_pre_ping=True
-    # )
-
-    # with admin_engine.connect() as conn:
-    #     conn = conn.execution_options(isolation_level="AUTOCOMMIT")
-    #     conn.execute(text(f"DROP DATABASE IF EXISTS {test_db_name}"))
-    #     conn.execute(text(f"CREATE DATABASE {test_db_name}"))
 
     engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
     Base.metadata.drop_all(bind=engine)
@@ -42,15 +34,16 @@ def create_and_delete_database():
     yield
 
     close_all_sessions()
-    engine.dispose()
-    # cleaning db
     Base.metadata.drop_all(bind=engine)
+    engine.dispose()
 
-    # with admin_engine.connect() as conn:
-    #     conn = conn.execution_options(isolation_level="AUTOCOMMIT")
-    #     conn.execute(text(f"DROP DATABASE IF EXISTS {test_db_name}"))
 
-    # admin_engine.dispose()
+@pytest.fixture(scope="function")
+def db():
+    engine = create_engine(TEST_DATABASE_URL, pool_pre_ping=True)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    yield SessionLocal()
 
 
 @pytest.fixture(scope="function")

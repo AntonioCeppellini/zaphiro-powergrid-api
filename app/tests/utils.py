@@ -43,7 +43,7 @@ class TestDatabase:
     def populate_test_database(self) -> None:
         components = []
 
-        # --- Transformers ---
+        # transformers
         for i in range(1, 40):
             components.append(
                 Transformer(
@@ -55,7 +55,7 @@ class TestDatabase:
                 )
             )
 
-        # --- Lines ---
+        # lines
         for i in range(1, 40):
             components.append(
                 Line(
@@ -67,7 +67,7 @@ class TestDatabase:
                 )
             )
 
-        # --- Switches ---
+        # switches
         for i in range(1, 40):
             components.append(
                 Switch(
@@ -81,7 +81,7 @@ class TestDatabase:
         self.session.add_all(components)
         self.session.commit()
 
-        # Manager user
+        # base user
         self.session.add(
             User(
                 username="manager",
@@ -90,8 +90,8 @@ class TestDatabase:
                 is_active=True,
             )
         )
-        
-        # Regular user
+
+        # base user
         self.session.add(
             User(
                 username="user",
@@ -109,13 +109,15 @@ class TestDatabase:
             "line": "Current",
             "switch": "Power",
         }
-        
+
         batch = []
 
         for component in components:
-            measurement_type = measurement_type_by_component_type[component.component_type]
+            measurement_type = measurement_type_by_component_type[
+                component.component_type
+            ]
 
-            for i in range (1, 100):
+            for i in range(1, 100):
                 dayspan = random.randint(1, 9)
                 timestamp = start_measurement_time + timedelta(days=dayspan)
 

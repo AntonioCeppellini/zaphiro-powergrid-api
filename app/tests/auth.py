@@ -22,7 +22,6 @@ def login(client, username: str = "manager", password: str = "managerpass") -> s
 def logout(client) -> None:
     """
     remove authorization header from the client.
-    useless right now because all tests use a brand new clean client :D
     """
     client.headers.pop("Authorization", None)
 

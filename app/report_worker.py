@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import time
 from datetime import datetime, timezone
 
@@ -44,11 +43,12 @@ def claim_one_report(db: Session) -> Report | None:
 
 def compute_report(db: Session, report: Report):
 
-    # 1) Components by type
+    # components by type
     components_by_type = []
     res = db.execute(
-        select(Component.component_type, func.count(Component.id))
-        .group_by(Component.component_type)
+        select(Component.component_type, func.count(Component.id)).group_by(
+            Component.component_type
+        )
     ).all()
 
     for component_type, count in res:
@@ -56,14 +56,13 @@ def compute_report(db: Session, report: Report):
             {"component_type": component_type, "count": int(count)}
         )
 
-    # 2) Transformer capacity per voltage
+    # transformer capacity per voltage
     transformer_capacity_by_voltage = []
     res = db.execute(
         select(
             Transformer.voltage_kv,
             func.coalesce(func.sum(Transformer.capacity_mva), 0.0),
-        )
-        .group_by(Transformer.voltage_kv)
+        ).group_by(Transformer.voltage_kv)
     ).all()
 
     for voltage, capacity in res:
@@ -71,14 +70,13 @@ def compute_report(db: Session, report: Report):
             {"voltage_kv": float(voltage), "capacity_mva": float(capacity)}
         )
 
-    # 3) Line length per voltage
+    # line length per voltage
     line_length_by_voltage = []
     res = db.execute(
         select(
             Line.voltage_kv,
             func.coalesce(func.sum(Line.length_km), 0.0),
-        )
-        .group_by(Line.voltage_kv)
+        ).group_by(Line.voltage_kv)
     ).all()
 
     for voltage, length in res:
@@ -86,7 +84,7 @@ def compute_report(db: Session, report: Report):
             {"voltage_kv": float(voltage), "length_km": float(length)}
         )
 
-    # 4) Daily measurement averages
+    # daily measurement averages
     daily_measurement_averages = []
 
     day_bucket = func.date_trunc("day", Measurement.timestamp).label("day")
@@ -157,25 +155,24 @@ def process_report(db: Session, report: Report) -> None:
         db.commit()
 
 
-def run_once() -> bool:
-    with SessionLocal() as db:
-        report = claim_one_report(db)
-        if not report:
-            return False
+def run_once(db) -> bool:
+    report = claim_one_report(db)
+    if not report:
+        return False
 
-    with SessionLocal() as db:
-        report = db.get(Report, report.id)
-        if not report:
-            return False
-        process_report(db, report)
-        return True
+    report = db.get(Report, report.id)
+    if not report:
+        return False
+    process_report(db, report)
+    return True
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO)
 
     while True:
-        did_work = run_once()
+        with SessionLocal() as db:
+            did_work = run_once(db)
         if not did_work:
             time.sleep(2)
 
