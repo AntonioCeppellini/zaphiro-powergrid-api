@@ -65,3 +65,8 @@ visit: http://localhost:8000/docs and try it out, HAVE FUN :D
 ### CHOICES
 
 fastapi + postgres + sqlalchemy + alembic
+
+
+## OUTCOME
+
+test went well, 1st apri i'll start my adventure with zaphiro
